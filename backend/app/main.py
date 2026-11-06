@@ -5,8 +5,12 @@ import time
 import uuid
 import asyncio
 import logging
+import gc
 from contextlib import asynccontextmanager
 from typing import Optional, List, Dict, Any
+
+import torch
+torch.set_num_threads(1)
 
 from fastapi import FastAPI, UploadFile, File, Form, Request, status
 from fastapi.responses import JSONResponse
@@ -267,6 +271,8 @@ async def detect_surfaces(
                 request_id,
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        finally:
+            gc.collect()
 
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 

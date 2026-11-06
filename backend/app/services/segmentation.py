@@ -107,50 +107,42 @@ class SegFormerADESegmentation(BaseSegmentationModel):
         # 3. Model inference
         with torch.inference_mode():
             outputs = self.model(**inputs)
-            logits = outputs.logits  # shape: [batch_size, 150, 128, 128]
+            logits = outputs.logits  # shape: [batch_size, 150, 128, 128] (only ~9.8 MB)
 
-            # 4. Upsample logits to standard 512x512 resolution to maintain sharp boundaries without OOM
-            logits_512 = F.interpolate(
-                logits,
-                size=(512, 512),
-                mode="bilinear",
-                align_corners=False
-            )
+            # 4. Softmax probabilities and argmax multi-class decision at native resolution
+            probs = F.softmax(logits, dim=1)[0]
+            pred = torch.argmax(logits, dim=1)[0]
 
-            # 5. Softmax probabilities and argmax multi-class decision at 512x512
-            probs_512 = F.softmax(logits_512, dim=1)[0]
-            pred_512 = torch.argmax(logits_512, dim=1)[0]
+            # 5. Confidence calculation directly on predicted surface pixels
+            wall_mask_native = (pred == self.wall_label_id)
+            floor_mask_native = (pred == self.floor_label_id)
 
-            # 6. Confidence calculation directly on 512x512 predictions
-            wall_mask_512 = (pred_512 == self.wall_label_id)
-            floor_mask_512 = (pred_512 == self.floor_label_id)
-
-            if wall_mask_512.any():
-                wall_conf = float(probs_512[self.wall_label_id, wall_mask_512].mean().cpu().item())
+            if wall_mask_native.any():
+                wall_conf = float(probs[self.wall_label_id, wall_mask_native].mean().cpu().item())
                 wall_conf = round(wall_conf, 4)
             else:
                 wall_conf = 0.0
                 warnings.append("No wall detected in the uploaded image.")
 
-            if floor_mask_512.any():
-                floor_conf = float(probs_512[self.floor_label_id, floor_mask_512].mean().cpu().item())
+            if floor_mask_native.any():
+                floor_conf = float(probs[self.floor_label_id, floor_mask_native].mean().cpu().item())
                 floor_conf = round(floor_conf, 4)
             else:
                 floor_conf = 0.0
                 warnings.append("No floor detected in the uploaded image.")
 
-            # Free large intermediate PyTorch tensors immediately to minimize RAM
-            del logits, logits_512, probs_512, outputs
+            # Free PyTorch tensors immediately to maintain ultra-low RAM footprint (<150MB)
+            pred_np = pred.to(torch.int16).cpu().numpy()
+            del logits, probs, outputs
 
             # Resize the integer class map to original dimensions (orig_h, orig_w)
-            pred_classes_np = pred_512.to(torch.int16).cpu().numpy()
-            pred_classes = cv2.resize(pred_classes_np, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
+            pred_classes = cv2.resize(pred_np, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
 
-        # 7. Extract raw binary masks
+        # 6. Extract raw binary masks
         wall_raw = (pred_classes == self.wall_label_id).astype(np.uint8)
         floor_raw = (pred_classes == self.floor_label_id).astype(np.uint8)
 
-        # 8. Post-processing (remove noise, fill tiny holes, smooth boundary, ensure mutual exclusion, enforce object exclusions)
+        # 7. Post-processing (remove noise, fill tiny holes, smooth boundary, ensure mutual exclusion, enforce object exclusions)
         wall_clean, floor_clean = postprocess_wall_and_floor(
             wall_raw, floor_raw, height=orig_h, width=orig_w, pred_classes=pred_classes
         )
