@@ -25,3 +25,4 @@ for img in images:
         print(f'{img}: OK (status {resp.status}), model latency: {data.get("processing_ms")}ms, total time: {int((time.time()-t0)*1000)}ms')
     except Exception as e:
         print(f'{img}: FAILED with {e}')
+

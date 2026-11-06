@@ -159,6 +159,7 @@ async def root():
 
 
 @app.get("/api/v1/health", summary="Service Health and Model Status")
+@app.get("/api/v1/health/", include_in_schema=False)
 async def health_check():
     """Verify backend health and model readiness."""
     try:
@@ -182,6 +183,18 @@ async def health_check():
     }
 
 
+@app.get("/api/v1/detect", include_in_schema=False)
+@app.get("/api/v1/detect/", include_in_schema=False)
+async def detect_get_fallback():
+    """Friendly fallback for GET requests preventing 405 Method Not Allowed."""
+    return {
+        "service": "RoomVision AI API",
+        "endpoint": "/api/v1/detect",
+        "allowed_methods": ["POST"],
+        "message": "Please send a POST request with an 'image' file parameter to segment walls and floors."
+    }
+
+
 @app.post(
     "/api/v1/detect",
     response_model=DetectionResponse,
@@ -193,6 +206,11 @@ async def health_check():
         503: {"model": ErrorResponse},
     },
     summary="Detect Wall and Floor in Room Image"
+)
+@app.post(
+    "/api/v1/detect/",
+    response_model=DetectionResponse,
+    include_in_schema=False
 )
 async def detect_surfaces(
     request: Request,

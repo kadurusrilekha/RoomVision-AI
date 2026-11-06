@@ -9,7 +9,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { BackendHealth, DetectionResponse, SampleImage } from './types';
 import { Layers, Sparkles, SlidersHorizontal } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 export const App: React.FC = () => {
   // 5-second animated splash screen state (shown once per page load)
