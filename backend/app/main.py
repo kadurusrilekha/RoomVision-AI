@@ -136,6 +136,17 @@ def make_error_response(error_code: str, message: str, request_id: str, status_c
     )
 
 
+@app.get("/", summary="Root health and info endpoint")
+async def root():
+    """Root endpoint for platform health checkers (Railway, Render, AWS)."""
+    return {
+        "service": "RoomVision AI API",
+        "status": "online",
+        "health": "/api/v1/health",
+        "docs": "/docs"
+    }
+
+
 @app.get("/api/v1/health", summary="Service Health and Model Status")
 async def health_check():
     """Verify backend health and model readiness."""

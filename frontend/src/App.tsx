@@ -120,7 +120,13 @@ export const App: React.FC = () => {
       setDetectionResult(result);
       setActiveTab('results');
     } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred during segmentation inference.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setErrorMessage(
+          'Cannot connect to the RoomVision AI backend server. The AI backend is currently offline or VITE_API_BASE_URL is not configured in Vercel settings.'
+        );
+      } else {
+        setErrorMessage(err.message || 'An unexpected error occurred during segmentation inference.');
+      }
     } finally {
       setIsProcessing(false);
     }

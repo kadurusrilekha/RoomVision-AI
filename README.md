@@ -1,6 +1,6 @@
 # RoomVision AI - Wall and Floor Detection Web Application
 
-> **Internship Assessment Project for iTileswale Private Limited**  
+> 
 > *Production-style Semantic Segmentation Web Platform for Interior Surfaces*
 
 ---

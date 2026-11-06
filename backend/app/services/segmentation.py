@@ -4,6 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Tuple, List, Dict, Optional
 import numpy as np
+import cv2
 import torch
 import torch.nn.functional as F
 from PIL import Image
@@ -106,41 +107,48 @@ class SegFormerADESegmentation(BaseSegmentationModel):
         # 3. Model inference
         with torch.inference_mode():
             outputs = self.model(**inputs)
-            logits = outputs.logits  # shape: [batch_size, num_classes, H_pred, W_pred]
+            logits = outputs.logits  # shape: [batch_size, 150, 128, 128]
 
-            # 4. Upsample logits to original image dimensions (orig_h, orig_w)
-            upsampled_logits = F.interpolate(
+            # 4. Upsample logits to standard 512x512 resolution to maintain sharp boundaries without OOM
+            logits_512 = F.interpolate(
                 logits,
-                size=(orig_h, orig_w),
+                size=(512, 512),
                 mode="bilinear",
                 align_corners=False
             )
 
-            # 5. Softmax probabilities and argmax multi-class decision
-            # Note: Argmax over all 150 ADE20K classes prevents furniture, ceiling,
-            # rugs, windows, and doors from being falsely assigned to wall or floor!
-            probs = F.softmax(upsampled_logits, dim=1)
-            pred_classes = torch.argmax(upsampled_logits, dim=1)[0].cpu().numpy()
-            probs_cpu = probs[0].cpu().numpy()
+            # 5. Softmax probabilities and argmax multi-class decision at 512x512
+            probs_512 = F.softmax(logits_512, dim=1)[0]
+            pred_512 = torch.argmax(logits_512, dim=1)[0]
 
-        # 6. Extract raw binary masks
+            # 6. Confidence calculation directly on 512x512 predictions
+            wall_mask_512 = (pred_512 == self.wall_label_id)
+            floor_mask_512 = (pred_512 == self.floor_label_id)
+
+            if wall_mask_512.any():
+                wall_conf = float(probs_512[self.wall_label_id, wall_mask_512].mean().cpu().item())
+                wall_conf = round(wall_conf, 4)
+            else:
+                wall_conf = 0.0
+                warnings.append("No wall detected in the uploaded image.")
+
+            if floor_mask_512.any():
+                floor_conf = float(probs_512[self.floor_label_id, floor_mask_512].mean().cpu().item())
+                floor_conf = round(floor_conf, 4)
+            else:
+                floor_conf = 0.0
+                warnings.append("No floor detected in the uploaded image.")
+
+            # Free large intermediate PyTorch tensors immediately to minimize RAM
+            del logits, logits_512, probs_512, outputs
+
+            # Resize the integer class map to original dimensions (orig_h, orig_w)
+            pred_classes_np = pred_512.to(torch.int16).cpu().numpy()
+            pred_classes = cv2.resize(pred_classes_np, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
+
+        # 7. Extract raw binary masks
         wall_raw = (pred_classes == self.wall_label_id).astype(np.uint8)
         floor_raw = (pred_classes == self.floor_label_id).astype(np.uint8)
-
-        # 7. Confidence calculation (average probability for classified pixels)
-        if np.count_nonzero(wall_raw) > 0:
-            wall_conf = float(probs_cpu[self.wall_label_id, wall_raw > 0].mean())
-            wall_conf = round(wall_conf, 4)
-        else:
-            wall_conf = 0.0
-            warnings.append("No wall detected in the uploaded image.")
-
-        if np.count_nonzero(floor_raw) > 0:
-            floor_conf = float(probs_cpu[self.floor_label_id, floor_raw > 0].mean())
-            floor_conf = round(floor_conf, 4)
-        else:
-            floor_conf = 0.0
-            warnings.append("No floor detected in the uploaded image.")
 
         # 8. Post-processing (remove noise, fill tiny holes, smooth boundary, ensure mutual exclusion, enforce object exclusions)
         wall_clean, floor_clean = postprocess_wall_and_floor(
