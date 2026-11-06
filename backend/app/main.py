@@ -38,20 +38,27 @@ logging.basicConfig(
 logger = logging.getLogger("RoomVision")
 
 # Concurrency control & rate limiting
-MAX_CONCURRENT_INFERENCES = int(os.getenv("MAX_CONCURRENT_INFERENCES", "3"))
+MAX_CONCURRENT_INFERENCES = int(os.getenv("MAX_CONCURRENT_INFERENCES", "5"))
 inference_semaphore = asyncio.Semaphore(MAX_CONCURRENT_INFERENCES)
 
-# Simple in-memory sliding window rate limiter
-RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+# Simple in-memory sliding window rate limiter (generous limit for production proxies)
+RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_PER_MINUTE", "300"))
 RATE_LIMIT_WINDOW_SECONDS = 60
 _request_history: Dict[str, List[float]] = {}
+
+
+def get_real_client_ip(request: Request) -> str:
+    """Extract real client IP behind reverse proxies (Railway, Render, Cloudflare)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def check_rate_limit(client_ip: str) -> bool:
     """Return True if request is allowed, False if limit exceeded."""
     now = time.time()
     history = _request_history.get(client_ip, [])
-    # Filter out requests older than window
     cutoff = now - RATE_LIMIT_WINDOW_SECONDS
     history = [t for t in history if t > cutoff]
     if len(history) >= RATE_LIMIT_MAX_REQUESTS:
@@ -194,7 +201,7 @@ async def detect_surfaces(
     return_overlay: bool = Form(True, description="Whether to generate and return blended overlay PNG")
 ):
     request_id = str(uuid.uuid4())
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_real_client_ip(request)
 
     # 1. Rate limiting check
     if not check_rate_limit(client_ip):

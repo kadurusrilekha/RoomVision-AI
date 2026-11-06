@@ -33,11 +33,15 @@ export const App: React.FC = () => {
   // Active view tab (Results vs Manual Correction)
   const [activeTab, setActiveTab] = useState<'results' | 'manual'>('results');
 
-  // Check health on mount
+  // Check health on mount with automatic retry to prevent flashing offline
   const checkHealth = async () => {
     setIsCheckingHealth(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/health`);
+      let res = await fetch(`${API_BASE}/api/v1/health`);
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 1200));
+        res = await fetch(`${API_BASE}/api/v1/health`);
+      }
       if (res.ok) {
         const data = await res.json();
         setHealth({
@@ -48,6 +52,18 @@ export const App: React.FC = () => {
         setHealth({ status: 'offline' });
       }
     } catch {
+      try {
+        await new Promise(r => setTimeout(r, 1200));
+        const res2 = await fetch(`${API_BASE}/api/v1/health`);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          setHealth({
+            status: data2.status === 'healthy' ? 'healthy' : 'initializing',
+            model: data2.model
+          });
+          return;
+        }
+      } catch {}
       setHealth({ status: 'offline' });
     } finally {
       setIsCheckingHealth(false);
