@@ -1,0 +1,32 @@
+id,category,image_filename,resolution,description,status
+1,Living Room,living_room.jpg,1000x667,Contemporary living room with sofa and rug,Downloaded
+2,Bedroom,bedroom.jpg,1000x667,Minimalist master bedroom with hardwood floor,Downloaded
+3,Kitchen,kitchen.jpg,1000x667,Modern kitchen and dining area with cabinets,Downloaded
+4,Bathroom,bathroom.jpg,1000x667,Luxury tiled bathroom with glass shower,Downloaded
+5,Empty Room,empty_room.jpg,1000x667,Empty interior with hardwood floor and white walls,Downloaded
+6,Modern Interior,modern_interior.jpg,1000x667,Scandinavian lounge with large window,Downloaded
+7,Dining Room,dining_room_01.jpg,1200x800,Dining table with 6 chairs and pendant lighting,Planned
+8,Corridor,corridor_01.jpg,1000x750,Long narrow hallway with wooden flooring,Planned
+9,Home Office,office_01.jpg,1200x800,Desk workstation with monitor and wall bookshelf,Planned
+10,Studio Apartment,studio_01.jpg,1200x800,Open concept studio space with divider,Planned
+11,Attic Bedroom,attic_01.jpg,1000x750,Slanted ceiling walls and low floor,Planned
+12,Tile Showroom,showroom_01.jpg,1200x800,Ceramic wall and floor tiles showcase,Planned
+13,Commercial Lobby,lobby_01.jpg,1200x800,Polished granite floor and glass wall,Planned
+14,Basement Room,basement_01.jpg,1000x750,Concrete floor and exposed brick wall,Planned
+15,Kids Playroom,kids_room_01.jpg,1000x750,Colorful wall with floor playmat,Planned
+16,Balcony Veranda,veranda_01.jpg,1000x750,Tiled floor with partial exterior wall,Planned
+17,Walk-in Closet,closet_01.jpg,1000x750,Enclosed wardrobe walls and hardwood floor,Planned
+18,Sunroom,sunroom_01.jpg,1200x800,Glass intensive walls with tiled floor,Planned
+19,Laundry Room,laundry_01.jpg,1000x750,Washing machine on tiled floor with tiled wall,Planned
+20,Staircase Landing,landing_01.jpg,1000x750,Floor transition with adjacent wall,Planned
+21,Dark Tone Bedroom,dark_bedroom_01.jpg,1200x800,Charcoal accent wall with dark wood floor,Planned
+22,White Minimalist,white_room_01.jpg,1200x800,All-white walls and light oak floor,Planned
+23,Industrial Loft,industrial_01.jpg,1200x800,Distressed brick wall and epoxy floor,Planned
+24,Art Gallery,gallery_01.jpg,1200x800,Large blank exhibition walls and polished floor,Planned
+25,Hotel Suite,hotel_01.jpg,1200x800,Carpeted area transition to tile bathroom,Planned
+26,Rustic Cabin,cabin_01.jpg,1000x750,Timber wood plank walls and stone floor,Planned
+27,Restaurant Seating,restaurant_01.jpg,1200x800,Booth seating against painted wall,Planned
+28,Gym Workout Room,gym_01.jpg,1000x750,Rubber mat floor and mirrored wall,Planned
+29,Kitchen Pantry,pantry_01.jpg,1000x750,Shelving against wall with tile floor,Planned
+30,Modern Penthouse,penthouse_01.jpg,1200x800,Floor-to-ceiling windows and marble floor,Planned
+

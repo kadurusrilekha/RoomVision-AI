@@ -1,0 +1,7 @@
+image,width,height,model,wall_iou,floor_iou,wall_confidence,floor_confidence,processing_ms,status
+bathroom.jpg,1000,667,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.8048,0.8637,4936.2,PENDING_ANNOTATION
+bedroom.jpg,1000,1000,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.8977,0.9127,4252.43,PENDING_ANNOTATION
+empty_room.jpg,1000,668,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.9645,0.9173,1864.14,PENDING_ANNOTATION
+kitchen.jpg,1000,667,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.7852,0.643,1993.68,PENDING_ANNOTATION
+living_room.jpg,1000,750,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.8783,0.7489,2071.42,PENDING_ANNOTATION
+modern_interior.jpg,1000,527,nvidia/segformer-b1-finetuned-ade-512-512,N/A,N/A,0.9506,0.9098,1580.81,PENDING_ANNOTATION
