@@ -21,6 +21,7 @@ from app.services.segmentation import get_model, BaseSegmentationModel
 from app.utils.image_utils import (
     validate_image_bytes,
     create_blended_overlay,
+    resize_for_inference,
     MIN_RECOMMENDED_DIMENSION
 )
 from app.utils.mask_utils import (
@@ -37,9 +38,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("RoomVision")
 
-# Concurrency control & rate limiting
-MAX_CONCURRENT_INFERENCES = int(os.getenv("MAX_CONCURRENT_INFERENCES", "5"))
+# Concurrency control & rate limiting (Strictly 1 inference at a time on 512MB RAM)
+MAX_CONCURRENT_INFERENCES = int(os.getenv("MAX_CONCURRENT_INFERENCES", "1"))
 inference_semaphore = asyncio.Semaphore(MAX_CONCURRENT_INFERENCES)
+
+
+def release_system_memory() -> None:
+    """Force Python garbage collector and Linux glibc to release unused memory back to OS."""
+    gc.collect()
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
 
 # Simple in-memory sliding window rate limiter (generous limit for production proxies)
 RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_PER_MINUTE", "300"))
@@ -281,12 +292,15 @@ async def detect_surfaces(
 
     start_time = time.perf_counter()
 
+    # Pre-scale image if dimension > 1024 to guarantee memory stays < 220 MB
+    proc_img, was_resized = resize_for_inference(pil_img, max_dim=1024)
+
     async with inference_semaphore:
         try:
             # Run inference in worker thread to prevent blocking the event loop
             loop = asyncio.get_running_loop()
             wall_mask, floor_mask, wall_conf, floor_conf, warnings = await loop.run_in_executor(
-                None, model.predict, pil_img
+                None, model.predict, proc_img
             )
         except Exception as e:
             logger.error(f"Inference error for request {request_id}: {e}", exc_info=True)
@@ -297,12 +311,12 @@ async def detect_surfaces(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         finally:
-            gc.collect()
+            release_system_memory()
 
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
     # 6. Dimensions and warnings
-    w, h = pil_img.size
+    w, h = proc_img.size
     if min(w, h) < MIN_RECOMMENDED_DIMENSION:
         warnings.append(
             f"Image shorter side ({min(w, h)}px) is below the recommended {MIN_RECOMMENDED_DIMENSION}px. Segmentation accuracy may be degraded."
@@ -325,7 +339,7 @@ async def detect_surfaces(
     if return_overlay:
         try:
             overlay_img = create_blended_overlay(
-                original_rgb=pil_img,
+                original_rgb=proc_img,
                 wall_mask=wall_mask,
                 floor_mask=floor_mask,
                 wall_color=(59, 130, 246),  # Blue

@@ -18,7 +18,7 @@ def mask_to_base64_png(mask: np.ndarray) -> str:
     pil_mask = Image.fromarray(bin_mask, mode="L")
     
     buf = io.BytesIO()
-    pil_mask.save(buf, format="PNG", optimize=True)
+    pil_mask.save(buf, format="PNG", optimize=False)
     buf.seek(0)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
